@@ -1,0 +1,49 @@
+{
+    "DamageOverTimeEffect": {
+        "Burning": {
+            "duration": 3,
+            "potency": 5,
+            "damage_type": "fire",
+            "description": "Deals fire damage over time.",
+            "damage_tupe": "magical",
+            "potency_modifier": {
+                "strength": 0.1,
+                "intelligence": 0.05
+            }
+        },
+        "Poison": {
+            "duration": 5,
+            "potency": 5,
+            "damage_type": "poison",
+            "description": "Deals poison damage over time.",
+            "damage_tupe": "physical",
+            "potency_modifier": {
+                "strength": 0.05,
+                "intelligence": 0.1
+            }
+        }
+    },
+    "HealOverTimeEffect": {
+        "Regeneration": {
+            "duration": 3,
+            "potency": 5,
+            "description": "Heals over time.",
+            "potency_modifier": {
+                "strength": 0.05,
+                "intelligence": 0.1
+            }
+        }
+    },
+    "StatModifierEffect": {
+        "StrengthBoost": {
+            "duration": 3,
+            "potency": 2,
+            "stat_to_modify": "strength",
+            "description": "Increases strength temporarily.",
+            "potency_modifier": {
+                "strength": 0.05,
+                "intelligence": 0.1
+            }
+        }
+    }
+}

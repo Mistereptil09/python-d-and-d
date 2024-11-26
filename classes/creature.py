@@ -1,43 +1,44 @@
 from classes.effects import EffectManager
 
 class Creature:
-    def __init__(self, name, level, description, hp, max_hp=None, defense=10, initiative=10, abilities=None, damage_type='physical', resistances=None, weaknesses=None, max_attack=10, min_attack=1):
-        self.name = name
-        self.level = level
-        self.description = description
+    def __init__(self, name: str, level: int, description: str, hp: int, max_hp: int = None, defense: int = 10, initiative: int = 10, abilities: list = None, damage_type: str = 'physical', resistances: list = None, weaknesses: list = None, max_attack: int = 10, min_attack: int = 1):
+        # Initialize basic attributes
+        self.name: str = name
+        self.level: int = level
+        self.description: str = description
         
         # HP management
-        self.max_hp = max_hp or hp
-        self.hp = hp
+        self.max_hp: int = max_hp or hp
+        self.hp: int = hp
         
         # Combat stats
-        self.defense = defense
-        self.initiative = initiative
-        self.max_attack = max_attack
-        self.min_attack = min_attack
-        self.damage_type = damage_type
-        self.resistances = resistances or []
-        self.weaknesses = weaknesses or []
+        self.defense: int = defense
+        self.initiative: int = initiative
+        self.max_attack: int = max_attack
+        self.min_attack: int = min_attack
+        self.damage_type: str = damage_type
+        self.resistances: list = resistances or []
+        self.weaknesses: list = weaknesses or []
         
         # Abilities and effects
-        self.abilities = abilities or []
-        self.is_alive = True
+        self.abilities: list = abilities or []
+        self.is_alive: bool = True
         
         # Effect management
-        self.effect_manager = EffectManager(self)
+        self.effect_manager: EffectManager = EffectManager(self)
         
         # Additional tracking
-        self.resources = {
+        self.resources: dict = {
             'mana': 100,
             'stamina': 100
         }
 
-    def take_damage(self, damage, damage_type=None, source=None):
+    def take_damage(self, damage: int, damage_type: str = None, source: str = None) -> None:
         """
         Sophisticated damage calculation with defense and resistances
         """
-        # calculate damage multiplier based on target's resistances
-        multiply_damage = self.mutlitply_damage(damage_type)
+        # Calculate damage multiplier based on target's resistances
+        multiply_damage = self.mutlitply_power(damage_type)
 
         # Apply damage multiplier
         multipled_damage = int(damage * multiply_damage)
@@ -51,35 +52,35 @@ class Creature:
         # Apply damage to HP
         self.hp = max(self.hp - actual_damage, 0)
 
-        # verify if creature is still alive
+        # Verify if creature is still alive
         if self.hp <= 0:
             self.is_alive = False
-        return
-        
-    def mutlitply_damage(self, damage_type):
-        """
-        Calculate damage multiplier based on target's resistances
-        """
-        # if has damage type as weakness and resistance, return 1.0 mutliplier
-        if (hasattr(self, 'resistances') and damage_type in self.resistances) and (hasattr(self, 'weaknesses') and damage_type in self.weaknesses):
-            return 1.0
-        # if has damage type as resistance, return 0.5 mutliplier
-        elif hasattr(self, 'resistances') and damage_type in self.resistances:
-            return 0.5
-        # if has damage type as weakness, return 1.5 mutliplier
-        elif hasattr(self, 'weaknesses') and damage_type in self.weaknesses:
-            return 1.5
-        # if none of the above, return 1.0
-        return 1.0
 
-    def heal(self, amount):
+    def heal(self, heal: int, heal_type: str) -> int:
         """
         Heal the creature
         """
-        self.hp = min(self.hp + amount, self.max_hp)
-        return amount
+        multiply_heal = self.mutlitply_power(heal_type)
 
-    def get_available_actions(self):
+        self.hp = min(self.hp + heal * multiply_heal, self.max_hp)
+    
+    def mutlitply_power(self, power_type: str) -> float:
+        """
+        Calculate damage multiplier based on target's resistances
+        """
+        # If has damage type as weakness and resistance, return 1.0 multiplier
+        if (hasattr(self, 'resistances') and power_type in self.resistances) and (hasattr(self, 'weaknesses') and power_type in self.weaknesses):
+            return 1.0
+        # If has damage type as resistance, return 0.5 multiplier
+        elif hasattr(self, 'resistances') and power_type in self.resistances:
+            return 0.5
+        # If has damage type as weakness, return 1.5 multiplier
+        elif hasattr(self, 'weaknesses') and power_type in self.weaknesses:
+            return 1.5
+        # If none of the above, return 1.0
+        return 1.0
+    
+    def get_available_actions(self) -> list:
         """
         Return possible actions based on current state
         Updated to work with our new Ability class
@@ -89,13 +90,13 @@ class Creature:
             if ability.can_use(self)
         ]
 
-    def learn_ability(self, ability):
+    def learn_ability(self, ability) -> None:
         """
         Add a new ability to the creature's repertoire
         """
         self.abilities.append(ability)
 
-    def update_turn(self):
+    def update_turn(self) -> None:
         """
         Called at the start or end of each turn
         Manages effects and ability cooldowns
@@ -111,22 +112,22 @@ class Creature:
                 if hasattr(ability, 'update_cooldown'):
                     ability.update_cooldown()
 
-
 class Hero(Creature):
-    def __init__(self, name, level, description, hp, max_hp, defense, initiative, abilities, damage_type, resistances, weaknesses, max_attack, min_attack, exp=0, hero_class=None, off_weapon=None, weapon=None, inventory=None):
+    def __init__(self, name: str, level: int, description: str, hp: int, max_hp: int, defense: int, initiative: int, abilities: list, damage_type: str, resistances: list, weaknesses: list, max_attack: int, min_attack: int, exp: int = 0, hero_class: str = None, off_weapon = None, weapon = None, inventory: list = None):
+        # Call parent constructor with updated parameters
         super().__init__(name=name, level=level, description=description, hp=hp, max_hp=max_hp, defense=defense, initiative=initiative, max_attack=max_attack, min_attack=min_attack, damage_type=damage_type, abilities=abilities,resistances=resistances,weaknesses=weaknesses)
-        self.hero_class = hero_class
+        self.hero_class: str = hero_class
         self.weapon = weapon
         self.off_weapon = off_weapon
-        self.inventory = inventory
-        self.exp = exp
+        self.inventory: list = inventory
+        self.exp: int = exp
 
 class Monster(Creature):
-    def __init__(self, name, level, description, hp, max_hp, defense, initiative, abilities, damage_type, resistances, weaknesses, max_attack, min_attack, xp=0, monster_type=None):
+    def __init__(self, name: str, level: int, description: str, hp: int, max_hp: int, defense: int, initiative: int, abilities: list, damage_type: str, resistances: list, weaknesses: list, max_attack: int, min_attack: int, xp: int = 0, monster_type: str = None):
         
         # Call parent constructor with updated parameters
         super().__init__(name=name, level=level, description=description, hp=hp, max_hp=max_hp, defense=defense, initiative=initiative, max_attack=max_attack, min_attack=min_attack, damage_type=damage_type, abilities=abilities,resistances=resistances,weaknesses=weaknesses)
         
         # Monster-specific attributes
-        self.monster_type = monster_type
-        self.xp = xp
+        self.monster_type: str = monster_type
+        self.xp: int = xp

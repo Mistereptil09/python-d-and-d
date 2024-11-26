@@ -1,0 +1,43 @@
+{
+    "Fireball": {
+        "description": "A fiery ball of magic",
+        "power": 30,
+        "cost": 20,
+        "cost_type": "mana",
+        "cooldown": 3,
+        "power_type": "magical",
+        "target_type": "single",
+        "effect_mutliplier": 0.5,
+        "effects": {
+            "effect_class": "DamageOverTimeEffect", "effect_name": "Burning"
+        }
+    }
+    ,
+    "Regeneration": {
+        "description": "Heals over time",
+        "power": 20,
+        "cost": 15,
+        "cost_type": "mana",
+        "cooldown": 5,
+        "power_type": "magical",
+        "target_type": "self",
+        "is_aggressive": false,
+        "effect_mutliplier": 0.5,
+        "effects": {
+            "effect_class": "HealOverTimeEffect", "effect_name": "Regeneration"
+        }
+    },
+    "StrengthBoost": {
+        "description": "Increases strength temporarily",
+        "cost": 10,
+        "cost_type": "mana",
+        "cooldown": 4,
+        "power_type": "physical",
+        "target_type": "self",
+        "is_aggressive": false,
+        "effect_mutliplier": 0.5,
+        "effects": {
+            "effect_class": "StatModifierEffect", "effect_name": "StrengthBoost"
+        }
+    }
+}
