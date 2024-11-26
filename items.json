@@ -1,0 +1,31 @@
+{
+    "Armor": {
+        "Helmet": {
+            "name": "Helmet",
+            "defense": 5,
+            "weight": 10
+        },
+        "Chestplate": {
+            "name": "Chestplate",
+            "defense": 15,
+            "weight": 20
+        },
+        "Boots": {
+            "name": "Boots",
+            "defense": 3,
+            "weight": 5
+        }
+    },
+    "Weapon": {
+        "Sword": {
+            "name": "Sword",
+            "attack": 10,
+            "weight": 8
+        },
+        "Axe": {
+            "name": "Axe",
+            "attack": 12,
+            "weight": 12
+        }
+    }
+}
