@@ -1,28 +1,21 @@
 import json
 import logging
-from typing import List, Union, TYPE_CHECKING, Tuple
+from typing import List, Union, TYPE_CHECKING, Dict
 
 if TYPE_CHECKING:
     from creature import Creature
 
+try:
+    with open('classes/templates/items.json', 'r') as file:
+        TEMPLATES = json.load(file)
+except FileNotFoundError:
+    logging.error("Effects templates file not found.")
+    TEMPLATES = {}
+except json.JSONDecodeError:
+    logging.error("Error decoding JSON from effects templates file.")
+    TEMPLATES = {}
+
 logging.basicConfig(level=logging.INFO)
-
-def load_item_templates(file_path: str) -> dict:
-    """
-    Load item templates from a JSON file.
-
-    :param file_path: Path to the JSON file.
-    :return: Dictionary of item templates.
-    """
-    try:
-        with open(file_path, 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        logging.error(f"File not found: {file_path}")
-        return {}
-    except json.JSONDecodeError:
-        logging.error(f"Error decoding JSON from file: {file_path}")
-        return {}
 
 class Inventory:
     def __init__(self, max_weight: float):
@@ -82,8 +75,76 @@ class Inventory:
         """
         return self.get_total_weight() + item.weight <= self.max_weight
 
-class Armor:
-    def __init__(self, name: str, defense: float, weight: float):
+class Item:
+    def __init__(self, name: str, weight: float, description: str = None):
+        """
+        Initialize an item.
+
+        :param name: Name of the item.
+        :param weight: Weight of the item.
+        """
+        self.name: str = name
+        self.weight: float = weight
+        self.description: str = description
+
+    @classmethod
+    def create_item(cls, item_type: str, name: str, template: Dict[str, Dict[str, Union[str, float, int]]]) -> 'Item':
+        """
+        Create an item from a template.
+
+        :param item_type: Type of the item (e.g., 'Armor', 'Weapon', 'Consumable').
+        :param name: Name of the item.
+        :param template: Template dictionary containing item attributes.
+        :return: Created item.
+        """
+        try:
+            # Adjust to search through nested dictionaries for Armor items
+            if item_type == 'Armor':
+                for category, items in template[item_type].items():
+                    if name in items:
+                        item_template = items[name]
+                        break
+                else:
+                    raise KeyError
+            else:
+                item_template = template[item_type][name]
+        except KeyError:
+            logging.error(f"Item template not found for {item_type} with name {name}.")
+            return None
+
+        if item_type == 'Armor':
+            return Armor(
+                name=name,
+                defense=item_template["defense"],
+                weight=item_template["weight"],
+                description=item_template["description"],
+                category=category
+            )
+        elif item_type == 'Weapon':
+            return Weapon(
+                name=name,
+                attack=item_template["attack"],
+                weight=item_template["weight"],
+                description=item_template["description"]
+            )
+        elif item_type == 'Consumable':
+            return Consumable(
+                name=name,
+                weight=item_template["weight"],
+                description=item_template["description"],
+                power=item_template.get("power", 0),
+                target=item_template.get("target"),
+                is_damage=item_template.get("is_damage", False),
+                is_energy=item_template.get("is_energy", False),
+                energy_type=item_template.get("energy_type"),
+                effect=item_template.get("effect", [])
+            )
+        else:
+            logging.error(f"Unknown item type: {item_type}")
+            return None
+                
+class Armor(Item):
+    def __init__(self, name: str, weight: float, description : str, defense: float, category : str = None):
         """
         Initialize an armor item.
 
@@ -91,12 +152,12 @@ class Armor:
         :param defense: Defense value of the armor.
         :param weight: Weight of the armor.
         """
-        self.name: str = name
+        super().__init__(name, weight, description)
         self.defense: float = defense
-        self.weight: float = weight
+        self.category: str = category
 
-class Weapon:
-    def __init__(self, name: str, attack: float, weight: float):
+class Weapon(Item):
+    def __init__(self, name: str, weight: float, description : str, attack: float):
         """
         Initialize a weapon item.
 
@@ -104,12 +165,11 @@ class Weapon:
         :param attack: Attack value of the weapon.
         :param weight: Weight of the weapon.
         """
-        self.name: str = name
+        super().__init__(name, weight, description)
         self.attack: float = attack
-        self.weight: float = weight
-
-class Consumable:
-    def __init__(self, name: str, description: str, weight: float, power, target = self, effect: List[Tuple[str, int]] = None):
+        
+class Consumable(Item):
+    def __init__(self, name: str, weight: float, description: str, power : int = 0, target : 'Creature' = None, is_damage : bool = False, is_energy : bool = False, energy_type : str = None, effect: List[Dict[str, str]] = None):
         """
         Initialize a consumable item.
 
@@ -118,42 +178,112 @@ class Consumable:
         :param weight: Weight of the consumable.
         :param effect: List of effects as tuples (effect type, potency).
         """
-        self.name: str = name
-        self.description: str = description
-        self.weight: float = weight
-        self.effect: List[Tuple[str, int]] = effect or []
+        super().__init__(name, weight, description)
         self.power: int = power
-        self.target : Creature = target
-
-def create_item(item_class: str, template: dict) -> Union[Armor, Weapon]:
+        self.target : 'Creature' = target
+        self.is_damage : bool = is_damage
+        self.is_energy : bool = is_energy
+        self.energy_type : str = energy_type
+        self.effect: List[Dict[str, str]] = effect or []
+        
+class EquipmentManager:
     """
-    Create an item (Armor or Weapon) from a template.
-
-    :param item_class: Class of the item ("Armor" or "Weapon").
-    :param template: Template dictionary containing item attributes.
-    :return: Created item (Armor or Weapon).
-    :raises ValueError: If the item class is unknown.
+    Equipement Manager class to handle equipping and unequipping items.
     """
-    if item_class == "Consumable":
-        return Consumable(
-            name=template["name"],
-            description=template["description"],
-            weight=template["weight"],
-            power=template["power"],
-            effect=template["effect"]
-        )
-    elif item_class == "Armor":
-        return Armor(
-            name=template["name"],
-            defense=template["defense"],
-            weight=template["weight"]
-        )
-    elif item_class == "Weapon":
-        return Weapon(
-            name=template["name"],
-            attack=template["attack"],
-            weight=template["weight"]
-        )
-    else:
-        raise ValueError(f"Unknown item class: {item_class}")
-    
+    def __init__(self):
+        self.equipped_items: Dict[str, Union[Armor, Weapon]] = {
+            "head": None,
+            "chest": None,
+            "legs": None,
+            "weapon": None
+        }
+        
+    def equip_item(self, item: Union[Armor, Weapon]) -> None:
+        """
+        Equip an item.
+
+        :param item: Item to be equipped.
+        """
+        if isinstance(item, Armor):
+            if item.category in self.equipped_items:
+                self.equipped_items[item.category] = item
+            else:
+                logging.error(f"Unknown armor category: {item.category}")
+                return
+        elif isinstance(item, Weapon):
+            self.equipped_items["weapon"] = item
+        else:
+            logging.error(f"Item type not supported: {type(item)}")
+            return
+        logging.info(f"Equipped {item.name}")
+
+    def unequip_item(self, slot: str) -> None:
+        """
+        Unequip an item from a specific slot.
+
+        :param slot: Slot to unequip the item from.
+        """
+        if slot in self.equipped_items and self.equipped_items[slot] is not None:
+            logging.info(f"Unequipped {self.equipped_items[slot].name}")
+            self.equipped_items[slot] = None
+
+    def get_equipped_items(self) -> Dict[str, Union[Armor, Weapon]]:
+        """
+        Get the currently equipped items.
+
+        :return: Dictionary of equipped items.
+        """
+        return self.equipped_items
+
+if __name__ == "__main__":
+    # Example usage:
+    TEMPLATES = {
+        "Armor": {
+            "head": {
+                "Helmet": {
+                    "name": "Helmet",
+                    "weight": 5,
+                    "defense": 5,
+                    "description": "A simple helmet."
+                },
+            },
+            "chest": {
+                "Chainmail": {
+                    "name": "Chainmail",
+                    "weight": 10,
+                    "defense": 10,
+                    "description": "A suit of chainmail."
+                },
+            },
+        },
+        "Weapon": {
+            "Sword": {
+                "name": "Sword",
+                "attack": 10,
+                "weight": 8,
+                "description": "A sharp sword."
+            }
+        }
+    }
+
+    # Create items
+    helmet = Item.create_item("Armor", "Helmet", TEMPLATES)
+    chestplate = Item.create_item("Armor", "Chainmail", TEMPLATES)
+    sword = Item.create_item("Weapon", "Sword", TEMPLATES)
+
+    # Equip items
+    equipment = EquipmentManager()
+    equipment.equip_item(helmet)
+    equipment.equip_item(chestplate)
+    equipment.equip_item(sword)
+
+    # Get equipped items
+    equipped_items = equipment.get_equipped_items()
+
+    # Print equipped items
+    for slot, item in equipped_items.items():
+        if item:
+            print(f"{slot.capitalize()}: {item.name}")
+        else:
+            print(f"{slot.capitalize()}: None")
+

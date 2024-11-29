@@ -1,60 +1,99 @@
 {
     "Armor": {
-        "Helmet": {
-            "name": "Helmet",
-            "defense": 5,
-            "weight": 10
+        "head": {
+            "Helmet": {
+                "weight": 5,
+                "defense": 5,
+                "description": "A simple helmet."
+            },
+            "Crown": {
+                "weight": 3,
+                "defense": 3,
+                "description": "A crown fit for a king."
+            }
         },
-        "Chestplate": {
-            "name": "Chestplate",
-            "defense": 15,
-            "weight": 20
+        "chest": {
+            "Chainmail": {
+                "weight": 10,
+                "defense": 10,
+                "description": "A suit of chainmail."
+            },
+            "Plate Armor": {
+                "weight": 15,
+                "defense": 15,
+                "description": "A shiny suit of plate armor."
+            }
         },
-        "Boots": {
-            "name": "Boots",
-            "defense": 3,
-            "weight": 5
+        "legs": {
+            "Pants": {
+                "weight": 3,
+                "defense": 3,
+                "description": "A pair of pants."
+            },
+            "Leather Trousers": {
+                "weight": 5,
+                "defense": 5,
+                "description": "A pair of trousers but made with leather."
+
+            }
         }
     },
     "Weapon": {
         "Sword": {
-            "name": "Sword",
             "attack": 10,
-            "weight": 8
+            "weight": 8,
+            "description": "A simple sword."
         },
         "Axe": {
-            "name": "Axe",
             "attack": 12,
-            "weight": 12
+            "weight": 12,
+            "description": "A simple axe."
         }
     },
     "Consumable": {
-        "HealthPotion": {
-            "name": "Health Potion",
+        "Health Potion": {
             "description": "Restores 50 health points.",
             "weight": 1,
-            "effect": [
-                ["heal", 50]
-            ]
+            "power": 50,
+            "target": "self",
+            "is_damage": false,
+            "is_energy": false
         },
-        "ManaPotion": {
-            "name": "Mana Potion",
+        "Mana Potion": {
             "description": "Restores 30 mana points.",
             "weight": 1,
-            "effect": [
-                ["restore_mana", 30]
-            ]
+            "power": 30,
+            "target": "self",
+            "is_damage": false,
+            "is_energy": true,
+            "energy_type": "mana"
         },
         "Bread": {
-            "name": "Bread",
             "description": "A simple loaf of bread.",
             "weight": 0.5,
-            "effect": []
+            "power": 10,
+            "target": "self",
+            "is_damage": false,
+            "is_energy": false
         },
         "WaterBottle": {
-            "name": "Water Bottle",
             "description": "A bottle of fresh water.",
-            "weight": 0.5
+            "weight": 0.5,
+            "power": 5,
+            "target": "self",
+            "is_damage": false,
+            "is_energy": false
+        },
+        "Poison": {
+            "description": "Deals 20 damage over time.",
+            "weight": 0.2,
+            "power": 20,
+            "target": "enemy",
+            "is_damage": true,
+            "is_energy": false,
+            "effect": [
+                ["damage_over_time", 20]
+            ]
         }
     }
 }

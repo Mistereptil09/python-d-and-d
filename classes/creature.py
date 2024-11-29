@@ -1,6 +1,12 @@
 from classes.effects import EffectManager
+from classes.inventory import Inventory, EquipmentManager
 
-class Creature:
+import random
+from abc import ABC, abstractmethod
+
+
+@abs
+class Creature(ABC):
     def __init__(self, name: str, level: int, description: str, hp: int, max_hp: int = None, defense: int = 10, initiative: int = 10, abilities: list = None, damage_type: str = 'physical', resistances: list = None, weaknesses: list = None, max_attack: int = 10, min_attack: int = 1):
         # Initialize basic attributes
         self.name: str = name
@@ -113,17 +119,16 @@ class Creature:
                     ability.update_cooldown()
 
 class Hero(Creature):
-    def __init__(self, name: str, level: int, description: str, hp: int, max_hp: int, defense: int, initiative: int, abilities: list, damage_type: str, resistances: list, weaknesses: list, max_attack: int, min_attack: int, exp: int = 0, hero_class: str = None, off_weapon = None, weapon = None, inventory: list = None):
+    def __init__(self, name: str, level: int, description: str, hp: int, max_hp: int, defense: int, initiative: int, abilities: list, damage_type: str, resistances: list, weaknesses: list, max_attack: int, min_attack: int, exp: int = 0, hero_class: str = None):
         # Call parent constructor with updated parameters
         super().__init__(name=name, level=level, description=description, hp=hp, max_hp=max_hp, defense=defense, initiative=initiative, max_attack=max_attack, min_attack=min_attack, damage_type=damage_type, abilities=abilities,resistances=resistances,weaknesses=weaknesses)
         self.hero_class: str = hero_class
-        self.weapon = weapon
-        self.off_weapon = off_weapon
-        self.inventory: list = inventory
+        self.inventory: 'Inventory' = Inventory(self)
+        self.equipment_manager: EquipmentManager = EquipmentManager(self)
         self.exp: int = exp
 
 class Monster(Creature):
-    def __init__(self, name: str, level: int, description: str, hp: int, max_hp: int, defense: int, initiative: int, abilities: list, damage_type: str, resistances: list, weaknesses: list, max_attack: int, min_attack: int, xp: int = 0, monster_type: str = None):
+    def __init__(self, name: str, level: int, description: str, hp: int, max_hp: int, defense: int, initiative: int, abilities: list, damage_type: str, resistances: list, weaknesses: list, max_attack: int, min_attack: int, xp: int = 0, monster_type: str = None, drop_table: dict = None):
         
         # Call parent constructor with updated parameters
         super().__init__(name=name, level=level, description=description, hp=hp, max_hp=max_hp, defense=defense, initiative=initiative, max_attack=max_attack, min_attack=min_attack, damage_type=damage_type, abilities=abilities,resistances=resistances,weaknesses=weaknesses)
@@ -131,3 +136,14 @@ class Monster(Creature):
         # Monster-specific attributes
         self.monster_type: str = monster_type
         self.xp: int = xp
+        self.drop_table: dict = drop_table or {}
+
+    def drop_loot(self) -> list:
+        """
+        Drop loot based on drop table
+        """
+        loot = []
+        for item, chance in self.drop_table.items():
+            if random.random() < chance:
+                loot.append(item)
+        return loot

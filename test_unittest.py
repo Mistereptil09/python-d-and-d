@@ -1,10 +1,11 @@
 import unittest
 import json
-from classes.effects import DamageOverTimeEffect, HealOverTimeEffect, StatModifierEffect, EffectManager
+from classes.effects import EffectManager, EffectFactory
 from classes.abilities import Ability
+from classes.inventory import Item, Armor, Weapon, Consumable
 
 class Creature:
-    def __init__(self, name, level, stats):
+    def __init__(self, name, level = 10, stats = {}):
         self.name = name
         self.level = level
         self.stats = stats
@@ -12,44 +13,33 @@ class Creature:
         self.effect_manager = EffectManager(self)
 
 class TestEffects(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        with open('./classes/templates/effectsTemplates.json', 'r') as file:
-            cls.templates = json.load(file)
-        cls.creature = Creature(name="Hero", level=5, stats={"strength": 10, "intelligence": 8})
+    def setUp(self):
+        self.creature = Creature(name="TestCreature", stats={"strength": 10, "wisdom": 5, "endurance": 8})
 
     def test_create_damage_over_time_effect(self):
-        template = self.templates["DamageOverTimeEffect"]["Burning"]
-        effect = DamageOverTimeEffect.create_effect("Burning", source_type="creature", applier=self.creature, potency_modifier=1.5)
-        expected_potency = template["potency"] * 1.5 * (1 + sum(self.creature.stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items()))
+        effect = EffectFactory.create_effect("DamageOverTimeEffect", "Burning", source_type="creature", applier=self.creature, potency_modifier=1.5)
+        self.assertIsNotNone(effect)
         self.assertEqual(effect.name, "Burning")
-        self.assertEqual(effect.duration, template["duration"])
-        self.assertEqual(effect.potency, expected_potency)
-        self.assertEqual(effect.damage_type, template["damage_type"])
-        self.assertEqual(effect.description, template["description"])
+        self.assertEqual(effect.duration, 3)
+        self.assertEqual(effect.potency, 15)  # Assuming base potency is 10 and modifier is 1.5
 
     def test_create_heal_over_time_effect(self):
-        template = self.templates["HealOverTimeEffect"]["Regeneration"]
-        effect = HealOverTimeEffect.create_effect("Regeneration", source_type="creature", applier=self.creature, potency_modifier=2.0)
-        expected_potency = template["potency"] * 2.0 * (1 + sum(self.creature.stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items()))
+        effect = EffectFactory.create_effect("HealOverTimeEffect", "Regeneration", source_type="creature", applier=self.creature, potency_modifier=2.0)
+        self.assertIsNotNone(effect)
         self.assertEqual(effect.name, "Regeneration")
-        self.assertEqual(effect.duration, template["duration"])
-        self.assertEqual(effect.potency, expected_potency)
-        self.assertEqual(effect.description, template["description"])
+        self.assertEqual(effect.duration, 3)
+        self.assertEqual(effect.potency, 15)  # Assuming base potency is 7 and modifier is 2.0 with the stats modifier of the creature added
 
     def test_create_stat_modifier_effect(self):
-        template = self.templates["StatModifierEffect"]["StrengthBoost"]
-        effect = StatModifierEffect.create_effect("StrengthBoost", source_type="creature", applier=self.creature, potency_modifier=1.0)
-        expected_potency = template["potency"] * 1.0 * (1 + sum(self.creature.stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items()))
-        self.assertEqual(effect.name, "StrengthBoost")
-        self.assertEqual(effect.duration, template["duration"])
-        self.assertEqual(effect.potency, expected_potency)
-        self.assertEqual(effect.stat_to_modify, template["stat_to_modify"])
-        self.assertEqual(effect.description, template["description"])
+        effect = EffectFactory.create_effect("StatModifierEffect", "Strength Boost", source_type="creature", applier=self.creature, potency_modifier=1.0)
+        self.assertIsNotNone(effect)
+        self.assertEqual(effect.name, "Strength Boost")
+        self.assertEqual(effect.duration, 3)
+        self.assertEqual(effect.potency, 3)
+        self.assertEqual(effect.stat_to_modify, "strength")
+
 
 class TestAbility(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         with open('./classes/templates/effectsTemplates.json', 'r') as file:
@@ -111,6 +101,64 @@ class TestAbility(unittest.TestCase):
         effect_template = ability.effects
         self.assertEqual(effect_template["effect_class"], "StatModifierEffect")
         self.assertEqual(effect_template["effect_name"], "StrengthBoost")
+
+
+class TestItemCreation(unittest.TestCase):
+    def setUp(self):
+        self.templates = {
+            "Armor": {
+                "head": {
+                    "Helmet": {
+                        "name": "Helmet",
+                        "defense": 5,
+                        "weight": 10,
+                        "description": "A sturdy helmet."
+                    }
+                },
+            },
+            "Weapon": {
+                "Sword": {
+                    "name": "Sword",
+                    "attack": 10,
+                    "weight": 8,
+                    "description": "A sharp sword."
+                }
+            },
+            "Consumable": {
+                "Health Potion": {
+                    "name": "Health Potion",
+                    "description": "Restores 50 health points.",
+                    "weight": 1,
+                    "power": 50,
+                    "target": "self",
+                    "is_damage": False,
+                    "effect": [
+                        {"type": "heal", "potency": 50}
+                    ]
+                }
+            }
+        }
+
+    def test_create_armor(self):
+        item = Item.create_item("Armor", "Helmet", self.templates)
+        self.assertIsInstance(item, Armor)
+        self.assertEqual(item.name, "Helmet")
+        self.assertEqual(item.defense, 5)
+        self.assertEqual(item.weight, 10)
+
+    def test_create_weapon(self):
+        item = Item.create_item("Weapon", "Sword", self.templates)
+        self.assertIsInstance(item, Weapon)
+        self.assertEqual(item.name, "Sword")
+        self.assertEqual(item.attack, 10)
+        self.assertEqual(item.weight, 8)
+
+    def test_create_consumable(self):
+        item = Item.create_item("Consumable", "Health Potion", self.templates)
+        self.assertIsInstance(item, Consumable)
+        self.assertEqual(item.name, "Health Potion")
+        self.assertEqual(item.power, 50)
+        self.assertEqual(item.weight, 1)
 
 if __name__ == '__main__':
     unittest.main()

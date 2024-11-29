@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from creature import Creature
@@ -25,35 +25,7 @@ class Effect:
         self.duration: int = duration  # Number of turns the effect lasts
         self.potency: int = potency  # Strength of the effect
         self.description: str = description
-        self.active: bool = True
-
-    @classmethod
-    def create_effect(cls, name: str, source_type: str, applier: 'Creature' = None, potency_modifier: float = 1.0) -> 'Effect':
-        """
-        Used to create effects from templates
-        """
-        try:
-            template = TEMPLATES[cls.__name__][name]
-        except KeyError:
-            logging.error(f"Effect template not found for {cls.__name__} with name {name}.")
-            return None
-
-        base_potency = template["potency"]
-
-        if source_type == "creature" and applier:  # effect comes from a creature
-            # Apply player level and stats multipliers
-            stats = applier.stats
-            stats_multiplier = 1 + sum(stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items())
-            final_potency = base_potency * potency_modifier * stats_multiplier
-        else:  # effect comes from the world / environment / item
-            final_potency = base_potency * potency_modifier
-
-        return cls(
-            name=name,
-            duration=template["duration"],
-            potency=final_potency,
-            description=template.get("description")
-        )
+        self.active: bool = True    
     
     def apply(self, target: 'Creature') -> None:
         """
@@ -87,36 +59,6 @@ class DamageOverTimeEffect(Effect):
     def __init__(self, name: str, duration: int, potency: int, damage_type: str, description: str = None):
         super().__init__(name, duration, potency, description)
         self.damage_type: str = damage_type
-
-    @classmethod
-    def create_effect(cls, name: str, source_type: str, applier: 'Creature' = None, potency_modifier: float = 1.0) -> 'DamageOverTimeEffect':
-        """
-        Used to create effects from templates
-        """
-        try:
-            template = TEMPLATES["DamageOverTimeEffect"][name]
-        except KeyError:
-            logging.error(f"Effect template not found for DamageOverTimeEffect with name {name}.")
-            return None
-
-        base_potency = template["potency"]
-
-        if source_type == "creature" and applier:  # effect comes from a creature
-            # Apply player level and stats multipliers
-            stats = applier.stats
-            stats_multiplier = 1 + sum(stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items())
-            final_potency = base_potency * potency_modifier * stats_multiplier
-        else:  # effect comes from the world / environment / item
-            final_potency = base_potency * potency_modifier
-
-        return cls(
-            name=name,
-            duration=template["duration"],
-            potency=final_potency,
-            damage_type=template["damage_type"],
-            description=template.get("description")
-        )
-
         
     def apply(self, target: 'Creature') -> None:
         """
@@ -149,34 +91,6 @@ class HealOverTimeEffect(Effect):
     """
     def __init__(self, name: str, duration: int, potency: int, description: str = None):
         super().__init__(name, duration, potency, description)
-
-    @classmethod
-    def create_effect(cls, name: str, source_type: str, applier: 'Creature' = None, potency_modifier: float = 1.0) -> 'HealOverTimeEffect':
-        """
-        Used to create effects from templates
-        """
-        try:
-            template = TEMPLATES["HealOverTimeEffect"][name]
-        except KeyError:
-            logging.error(f"Effect template not found for HealOverTimeEffect with name {name}.")
-            return None
-
-        base_potency = template["potency"]
-
-        if source_type == "creature" and applier:  # effect comes from a creature
-            # Apply player level and stats multipliers
-            stats = applier.stats
-            stats_multiplier = 1 + sum(stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items())
-            final_potency = base_potency * potency_modifier * stats_multiplier
-        else:  # effect comes from the world / environment / item
-            final_potency = base_potency * potency_modifier
-
-        return cls(
-            name=name,
-            duration=template["duration"],
-            potency=final_potency,
-            description=template.get("description")
-        )
     
     def apply(self, target: 'Creature') -> None:
         """
@@ -212,35 +126,6 @@ class StatModifierEffect(Effect):
         self.stat_to_modify: str = stat_to_modify
         self.applied: bool = False
 
-    @classmethod
-    def create_effect(cls, name: str, source_type: str, applier: 'Creature' = None, potency_modifier: float = 1.0) -> 'StatModifierEffect':
-        """
-        Used to create effects from templates
-        """
-        try:
-            template = TEMPLATES["StatModifierEffect"][name]
-        except KeyError:
-            logging.error(f"Effect template not found for StatModifierEffect with name {name}.")
-            return None
-
-        base_potency = template["potency"]
-
-        if source_type == "creature" and applier:  # effect comes from a creature
-            # Apply player level and stats multipliers
-            stats = applier.stats
-            stats_multiplier = 1 + sum(stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items())
-            final_potency = base_potency * potency_modifier * stats_multiplier
-        else:  # effect comes from the world / environment / item
-            final_potency = base_potency * potency_modifier
-
-        return cls(
-            name=name,
-            duration=template["duration"],
-            potency=final_potency,
-            stat_to_modify=template["stat_to_modify"],
-            description=template.get("description")
-        )
-    
     def apply(self, target: 'Creature') -> None:
         """
         Apply the stat modification
@@ -318,3 +203,59 @@ class EffectManager:
         Get the list of active effects
         """
         return self.active_effects
+
+class EffectFactory:
+    @staticmethod
+    def create_effect(effect_type: str, name: str, source_type: str, applier: 'Creature' = None, potency_modifier: float = 1.0) -> Union['Effect', None]:
+        """
+        Create an effect from a template.
+
+        :param effect_type: Type of the effect (e.g., 'DamageOverTimeEffect', 'HealOverTimeEffect', 'StatModifierEffect').
+        :param name: Name of the effect.
+        :param source_type: Source type of the effect (e.g., 'creature', 'environment').
+        :param applier: The creature applying the effect.
+        :param potency_modifier: Modifier to adjust the potency of the effect.
+        :return: Created effect.
+        """
+        try:
+            template = TEMPLATES[effect_type][name]
+        except KeyError:
+            logging.error(f"Effect template not found for {effect_type} with name {name}.")
+            return None
+
+        base_potency = template["potency"]
+
+        if source_type == "creature" and applier:  # effect comes from a creature
+            # Apply player and stats multipliers
+            stats = applier.stats
+            stats_multiplier = 1 + sum(stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items())
+            final_potency = int(base_potency * potency_modifier * stats_multiplier)
+        else:  # effect comes from the world / environment / item
+            final_potency = base_potency * potency_modifier
+
+        if effect_type == 'DamageOverTimeEffect':
+            return DamageOverTimeEffect(
+                name=name,
+                duration=template["duration"],
+                potency=final_potency,
+                damage_type=template["damage_type"],
+                description=template.get("description")
+            )
+        elif effect_type == 'HealOverTimeEffect':
+            return HealOverTimeEffect(
+                name=name,
+                duration=template["duration"],
+                potency=final_potency,
+                description=template.get("description")
+            )
+        elif effect_type == 'StatModifierEffect':
+            return StatModifierEffect(
+                name=name,
+                duration=template["duration"],
+                potency=final_potency,
+                stat_to_modify=template["stat_to_modify"],
+                description=template.get("description")
+            )
+        else:
+            logging.error(f"Unknown effect type: {effect_type}")
+            return None

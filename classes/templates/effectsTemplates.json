@@ -35,7 +35,7 @@
         }
     },
     "StatModifierEffect": {
-        "StrengthBoost": {
+        "Strength Boost": {
             "duration": 3,
             "potency": 2,
             "stat_to_modify": "strength",
