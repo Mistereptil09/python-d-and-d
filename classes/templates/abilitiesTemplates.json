@@ -21,7 +21,7 @@
         "cooldown": 5,
         "power_type": "magical",
         "target_type": "self",
-        "is_aggressive": false,
+        "is_offensive": false,
         "effect_mutliplier": 0.5,
         "effects": {
             "effect_class": "HealOverTimeEffect", "effect_name": "Regeneration"
@@ -34,7 +34,7 @@
         "cooldown": 4,
         "power_type": "physical",
         "target_type": "self",
-        "is_aggressive": false,
+        "is_offensive": false,
         "effect_mutliplier": 0.5,
         "effects": {
             "effect_class": "StatModifierEffect", "effect_name": "StrengthBoost"

@@ -1,11 +1,19 @@
 import json
+import logging
 from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
     from creature import Creature
 
-with open('classes/templates/effectsTemplates.json', 'r') as file:
-    TEMPLATES = json.load(file)
+try:
+    with open('classes/templates/effectsTemplates.json', 'r') as file:
+        TEMPLATES = json.load(file)
+except FileNotFoundError:
+    logging.error("Effects templates file not found.")
+    TEMPLATES = {}
+except json.JSONDecodeError:
+    logging.error("Error decoding JSON from effects templates file.")
+    TEMPLATES = {}
 
 class Effect:
     """
@@ -24,13 +32,19 @@ class Effect:
         """
         Used to create effects from templates
         """
-        template = TEMPLATES[cls.__name__][name]
+        try:
+            template = TEMPLATES[cls.__name__][name]
+        except KeyError:
+            logging.error(f"Effect template not found for {cls.__name__} with name {name}.")
+            return None
+
         base_potency = template["potency"]
 
         if source_type == "creature" and applier:  # effect comes from a creature
             # Apply player level and stats multipliers
             stats = applier.stats
             stats_multiplier = 1 + sum(stats.get(stat, 0) * modifier for stat, modifier in template.get("potency_modifier", {}).items())
+            final_potency = base_potency * potency_modifier * stats_multiplier
         else:  # effect comes from the world / environment / item
             final_potency = base_potency * potency_modifier
 
@@ -79,7 +93,12 @@ class DamageOverTimeEffect(Effect):
         """
         Used to create effects from templates
         """
-        template = TEMPLATES["DamageOverTimeEffect"][name]
+        try:
+            template = TEMPLATES["DamageOverTimeEffect"][name]
+        except KeyError:
+            logging.error(f"Effect template not found for DamageOverTimeEffect with name {name}.")
+            return None
+
         base_potency = template["potency"]
 
         if source_type == "creature" and applier:  # effect comes from a creature
@@ -103,7 +122,10 @@ class DamageOverTimeEffect(Effect):
         """
         Deal damage to the target creature each turn
         """        
-        target.take_damage(self.potency, self.damage_type, "effect")
+        try:
+            target.take_damage(self.potency, self.damage_type, "effect")
+        except AttributeError:
+            logging.error(f"Target {target} does not have a take_damage method.")
     
     def update(self, target: 'Creature') -> bool:
         """
@@ -113,7 +135,7 @@ class DamageOverTimeEffect(Effect):
         if self.duration > 0:
             self.apply(target)
             self.duration -= 1
-            print(f"{self.name} deals {self.potency} {self.damage_type} damage to {target.name}. Duration left: {self.duration}")
+            logging.info(f"{self.name} deals {self.potency} {self.damage_type} damage to {target.name}. Duration left: {self.duration}")
 
         if self.duration <= 0:
             self.active = False
@@ -133,7 +155,12 @@ class HealOverTimeEffect(Effect):
         """
         Used to create effects from templates
         """
-        template = TEMPLATES["HealOverTimeEffect"][name]
+        try:
+            template = TEMPLATES["HealOverTimeEffect"][name]
+        except KeyError:
+            logging.error(f"Effect template not found for HealOverTimeEffect with name {name}.")
+            return None
+
         base_potency = template["potency"]
 
         if source_type == "creature" and applier:  # effect comes from a creature
@@ -155,7 +182,10 @@ class HealOverTimeEffect(Effect):
         """
         Heal the target creature each turn
         """
-        target.heal(self.potency)
+        try:
+            target.heal(self.potency)
+        except AttributeError:
+            logging.error(f"Target {target} does not have a heal method.")
     
     def update(self, target: 'Creature') -> bool:
         """
@@ -165,7 +195,7 @@ class HealOverTimeEffect(Effect):
         if self.duration > 0:
             self.apply(target)
             self.duration -= 1
-            print(f"{self.name} heals {self.potency} HP for {target.name}. Duration left: {self.duration}")
+            logging.info(f"{self.name} heals {self.potency} HP for {target.name}. Duration left: {self.duration}")
 
         if self.duration <= 0:
             self.active = False
@@ -182,21 +212,17 @@ class StatModifierEffect(Effect):
         self.stat_to_modify: str = stat_to_modify
         self.applied: bool = False
 
-class StatModifierEffect(Effect):
-    """
-    An effect that temporarily modifies a creature's stats
-    """
-    def __init__(self, name: str, duration: int, potency: int, description: str = None, stat_to_modify: str = None):
-        super().__init__(name, duration, potency, description)
-        self.stat_to_modify: str = stat_to_modify
-        self.applied: bool = False
-
     @classmethod
     def create_effect(cls, name: str, source_type: str, applier: 'Creature' = None, potency_modifier: float = 1.0) -> 'StatModifierEffect':
         """
         Used to create effects from templates
         """
-        template = TEMPLATES["StatModifierEffect"][name]
+        try:
+            template = TEMPLATES["StatModifierEffect"][name]
+        except KeyError:
+            logging.error(f"Effect template not found for StatModifierEffect with name {name}.")
+            return None
+
         base_potency = template["potency"]
 
         if source_type == "creature" and applier:  # effect comes from a creature
@@ -226,9 +252,9 @@ class StatModifierEffect(Effect):
                 current_value = getattr(target, self.stat_to_modify)
                 new_value = current_value + self.potency
                 setattr(target, self.stat_to_modify, new_value)
-                print(f"{self.stat_to_modify} modified by {self.potency} for {target.name}")
+                logging.info(f"{self.stat_to_modify} modified by {self.potency} for {target.name}")
             else:
-                print(f"{target} does not have a {self.stat_to_modify} stat")
+                logging.error(f"{target} does not have a {self.stat_to_modify} stat")
 
     def remove(self, target: 'Creature') -> None:
         """
@@ -239,7 +265,7 @@ class StatModifierEffect(Effect):
             new_value = current_value - self.potency
             setattr(target, self.stat_to_modify, new_value)
             self.applied = False
-            print(f"{self.stat_to_modify} reverted by {self.potency} for {target.name}")
+            logging.info(f"{self.stat_to_modify} reverted by {self.potency} for {target.name}")
 
     def update(self, target: 'Creature') -> bool:
         """
@@ -268,8 +294,9 @@ class EffectManager:
         """
         Add a new effect to the creature
         """
-        self.active_effects.append(effect)
-        effect.apply(self.owner)
+        if effect:
+            self.active_effects.append(effect)
+            effect.apply(self.owner)
 
     def remove_effect(self, effect: Effect) -> None:
         """

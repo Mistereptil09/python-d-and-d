@@ -1,13 +1,21 @@
 # this file contains the Ability class and related functions
 from classes.effects import DamageOverTimeEffect, HealOverTimeEffect, StatModifierEffect
 import json
+import logging
 from typing import TYPE_CHECKING, List, Dict, Any
 
 if TYPE_CHECKING:
     from creature import Creature
 
-with open('classes/templates/abilitiesTemplates.json', 'r') as file:
-    TEMPLATES = json.load(file)
+try:
+    with open('classes/templates/abilitiesTemplates.json', 'r') as file:
+        TEMPLATES = json.load(file)
+except FileNotFoundError:
+    logging.error("Abilities templates file not found.")
+    TEMPLATES = {}
+except json.JSONDecodeError:
+    logging.error("Error decoding JSON from abilities templates file.")
+    TEMPLATES = {}
 
 effect_classes = {
     "DamageOverTimeEffect": DamageOverTimeEffect,
@@ -25,7 +33,7 @@ class Ability:
     def __init__(self, 
         name: str, 
         description: str, 
-        is_aggressive: bool = True,
+        is_offensive: bool = True,
         power: int = 0,  # Renamed from damage to power to handle both healing and damage
         cost: int = 0, 
         cost_type: str = 'mana', # 'mana', 'stamina', etc.
@@ -34,7 +42,6 @@ class Ability:
         target_type: str = 'single', # 'single', 'area', 'self', 'all'
         effects: List[Dict[str, Any]] = None,
         power_modifiers: List[tuple] = None,  # Renamed from damage_modifiers to power_modifiers to handle both healing and damage
-        effect_potency_modifiers: Dict[str, List[tuple]] = None,
         effect_multiplier: float = 1.0):
         self.name: str = name
         self.description: str = description
@@ -48,19 +55,23 @@ class Ability:
         self.effect_multiplier: float = effect_multiplier
         self.effects: List[Dict[str, Any]] = effects or []
         self.power_modifiers: List[tuple] = power_modifiers or []  # Renamed from damage_modifiers to power_modifiers to handle both healing and damage
-        self.effect_potency_modifiers: Dict[str, List[tuple]] = effect_potency_modifiers or {}  # Dict of effect name to list of (stat, factor) tuples
 
     @classmethod
     def create_ability(cls, name, template: dict) -> 'Ability':
         """
         Create an ability from a template.
         """
-        template = TEMPLATES[name]
+        try:
+            template = TEMPLATES[name]
+        except KeyError:
+            logging.error(f"Ability template not found for {name}.")
+            return None
+
         effects = template.get("effects", [])
         return cls(
             name=name,
             description=template["description"],
-            is_aggressive=template.get("is_aggressive", True),
+            is_offensive=template.get("is_offensive", True),
             power=template.get("power", 0),
             cost=template.get("cost", 0),
             cost_type=template.get("cost_type", 'mana'),
@@ -69,7 +80,6 @@ class Ability:
             target_type=template.get("target_type", 'single'),
             effects=effects,
             power_modifiers=template.get("power_modifiers", []),   
-            effect_potency_modifiers=template.get("effect_potency_modifiers", {}),
             effect_multiplier=template.get("effect_multiplier", 1.0)
         )
 
@@ -106,12 +116,16 @@ class Ability:
         """
         self.can_use(user, target)
         user.resources[self.cost_type] -= self.cost
+        power = 0
         if self.base_power != 0:
             power = self.calculate_power(user)
-            if self.is_aggressive:
-                target.take_damage(self.power_type, power)
-            else:
-                target.heal(power)
+            try:
+                if self.is_offensive:
+                    target.take_damage(self.power_type, power)
+                else:
+                    target.heal(power)
+            except AttributeError as e:
+                logging.error(f"Error using ability {self.name}: {e}")
         for effect_template in self.effects:
             effect_class_name = effect_template["effect_class"]
             effect_class = effect_classes.get(effect_class_name)
@@ -122,7 +136,12 @@ class Ability:
                     applier=user,
                     potency_modifier=self.effect_multiplier
                 )
-                target.effect_manager.add_effect(created_effect)
+                if created_effect:
+                    target.effect_manager.add_effect(created_effect)
+                else:
+                    logging.error(f"Failed to create effect {effect_template['effect_name']} for ability {self.name}")
+            else:
+                logging.error(f"Effect class {effect_class_name} not found for ability {self.name}")
         self.current_cooldown = self.max_cooldown
         return power
 

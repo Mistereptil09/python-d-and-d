@@ -27,5 +27,34 @@
             "attack": 12,
             "weight": 12
         }
+    },
+    "Consumable": {
+        "HealthPotion": {
+            "name": "Health Potion",
+            "description": "Restores 50 health points.",
+            "weight": 1,
+            "effect": [
+                ["heal", 50]
+            ]
+        },
+        "ManaPotion": {
+            "name": "Mana Potion",
+            "description": "Restores 30 mana points.",
+            "weight": 1,
+            "effect": [
+                ["restore_mana", 30]
+            ]
+        },
+        "Bread": {
+            "name": "Bread",
+            "description": "A simple loaf of bread.",
+            "weight": 0.5,
+            "effect": []
+        },
+        "WaterBottle": {
+            "name": "Water Bottle",
+            "description": "A bottle of fresh water.",
+            "weight": 0.5
+        }
     }
 }
