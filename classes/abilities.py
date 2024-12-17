@@ -61,13 +61,9 @@ class Ability:
         """
         Create an ability from a template.
         """
-        try:
-            template = TEMPLATES[name]
-        except KeyError:
-            logging.error(f"Ability template not found for {name}.")
-            return None
-
         effects = template.get("effects", [])
+        if effects is []:
+            logging.info("effect are not found for effect", name)
         return cls(
             name=name,
             description=template["description"],

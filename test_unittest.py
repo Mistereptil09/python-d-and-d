@@ -160,5 +160,6 @@ class TestItemCreation(unittest.TestCase):
         self.assertEqual(item.power, 50)
         self.assertEqual(item.weight, 1)
 
+
 if __name__ == '__main__':
     unittest.main()

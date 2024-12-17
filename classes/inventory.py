@@ -25,9 +25,9 @@ class Inventory:
         :param max_weight: Maximum weight the inventory can hold.
         """
         self.max_weight: float = max_weight
-        self.items: List[Union['Armor', 'Weapon']] = []
+        self.items: List[Union['Armor', 'Weapon', 'Item']] = []
 
-    def add_item(self, item: Union['Armor', 'Weapon', ]) -> None:
+    def add_item(self, item: Union['Armor', 'Weapon', 'Item']) -> None:
         """
         Add an item to the inventory if it does not exceed the weight limit.
 
@@ -39,7 +39,7 @@ class Inventory:
         else:
             logging.warning(f"Cannot add {item.name} to inventory. Exceeds weight limit.")
 
-    def remove_item(self, item: Union['Armor', 'Weapon']) -> None:
+    def remove_item(self, item: Union['Armor', 'Weapon', 'Item']) -> None:
         """
         Remove an item from the inventory.
 
@@ -66,7 +66,7 @@ class Inventory:
         for item in self.items:
             logging.info(f"{item.name} (Weight: {item.weight}, Defense: {getattr(item, 'defense', 'N/A')}, Attack: {getattr(item, 'attack', 'N/A')})")
 
-    def can_add_item(self, item: Union['Armor', 'Weapon']) -> bool:
+    def can_add_item(self, item: Union['Armor', 'Weapon', 'Item']) -> bool:
         """
         Check if an item can be added to the inventory without exceeding the weight limit.
 

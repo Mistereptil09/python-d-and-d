@@ -1,3 +1,5 @@
+from abilities import Ability
+
 class Action:
     def __init__(self, performer, target):
         self.performer = performer
@@ -7,54 +9,46 @@ class Action:
         """Abstract method to be implemented by subclasses"""
         raise NotImplementedError("Each action must implement its execution")
     
-    def listPossibleActions(self):
+    def list_possible_actions(self):
         """List possible actions for the performer"""
         return []
     
-    def listCharacters(self):
+    def list_characters(self):
         """List characters that can be targeted"""
         return []
 
-class AttackAction(Action):
-    def __init__(self, performer, target, weapon=None):
+class AbilityAction(Action):
+    def __init__(self, performer, target, ability: Ability):
         super().__init__(performer, target)
-        self.weapon = weapon
+        self.ability = ability
     
-    def calculate_hit_chance(self):
-        """Calculate probability of successful attack"""
-        # Consider performer's skills, target's defense, etc.
-        pass
-    
-    def calculate_damage(self):
-        """Calculate damage based on weapon, skills, etc."""
-        base_damage = self.performer.maxAttack
-        if self.weapon:
-            base_damage += self.weapon.damage
-        return base_damage
-
     def execute(self):
-        hit_probability = self.calculate_hit_chance()
-        if hit_probability > 0.5:  # Simplified hit check
-            damage = self.calculate_damage()
+        """Execute the ability on the target"""
+        if self.ability.is_offensive:
+            damage = self.ability.calculate_power(self.performer)
             self.target.take_damage(damage)
-            return True
-        return False
+        else:
+            heal = self.ability.calculate_power(self.performer)
+            self.target.heal(heal)
+        # Apply effects if any
+        for effect in self.ability.effects:
+            self.target.apply_effect(effect)
 
-class HealAction(Action):
-    def __init__(self, performer, target, heal_amount):
+class DefendAction(Action):
+    def execute(self):
+        """Increase the performer's defense for a turn"""
+        self.performer.defend()
+
+class WaitAction(Action):
+    def execute(self):
+        """Skip the turn"""
+        pass
+
+class UseItemAction(Action):
+    def __init__(self, performer, target, item):
         super().__init__(performer, target)
-        self.heal_amount = heal_amount
+        self.item = item
     
     def execute(self):
-        """Heal the target"""
-        max_heal = self.heal_amount
-        self.target.hp = min(self.target.hp + max_heal, self.target.max_hp)
-
-class BuffAction(Action):
-    def __init__(self, performer, target, effect):
-        super().__init__(performer, target)
-        self.effect = effect
-    
-    def execute(self):
-        """Apply a buff effect to the target"""
-        self.target.add_status(self.effect)
+        """Use an item on the target"""
+        self.item.use(self.target)

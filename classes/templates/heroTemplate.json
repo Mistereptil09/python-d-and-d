@@ -1,0 +1,16 @@
+{
+    "Warior": {
+        "description": "Déscription d'un Guerrier 'warior' ici",
+        "max_hp": 100,
+        "defense": 10,
+        "initiative": 10,
+        "abilities": ["Fireball"],
+        "resistances": ["physical"],
+        "weaknesses": ["magical"],
+        "max_attack": 10,
+        "min_attack": 1,
+        "max_weight": 100,
+        "Weapon": "Sword",
+        "Armor": ["Helmet", "Chainmail", "Pants"]
+    }
+}
